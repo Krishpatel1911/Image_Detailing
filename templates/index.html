@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image-Detailing — Vision Recognition Darkroom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-brand">
+    <span class="brand-dot"></span>
+    <span class="brand-name">Image<span class="brand-accent">-Detailing</span></span>
+  </div>
+  <div class="nav-center">
+    <span class="nav-badge" id="modelBadge">MobileNetV2</span>
+    <span class="nav-separator">·</span>
+    <span class="nav-status" id="statusDot">●</span>
+    <span class="nav-status-text" id="statusText">Ready</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn-ghost" onclick="showModelPanel()">⚙ Switch Lens</button>
+    <a class="btn-ghost" href="/api/health" target="_blank">Health</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+<header class="hero">
+  <div class="hero-eyebrow">Computer Vision · ImageNet · 1000 Classes</div>
+  <h1 class="hero-title">Develop what's in the frame.</h1>
+  <p class="hero-sub">Upload any photo — MobileNetV2, ResNet-50, or EfficientNet-B0<br>will bring the details into focus in milliseconds.</p>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- ── Upload Zone ──────────────────────────────────────────────────── -->
+  <div class="upload-card" id="uploadCard">
+
+    <!-- Drag & Drop Zone -->
+    <div class="drop-zone" id="dropZone"
+         onclick="document.getElementById('fileInput').click()"
+         ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave(event)"
+         ondrop="handleDrop(event)">
+
+      <div class="drop-inner" id="dropInner">
+        <div class="drop-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="2" stroke-dasharray="3 4"/>
+            <path d="M24 15l3.5 6.5L34 24l-6.5 2.5L24 33l-3.5-6.5L14 24l6.5-2.5L24 15z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="24" cy="24" r="4" fill="currentColor" opacity=".4"/>
+          </svg>
+        </div>
+        <p class="drop-title">Drop a photo in the tray</p>
+        <p class="drop-sub">or click to browse · PNG, JPG, WEBP · max 10 MB</p>
+      </div>
+
+      <!-- Preview (hidden until file chosen) -->
+      <div class="preview-wrap hidden" id="previewWrap">
+        <img class="preview-img" id="previewImg" src="" alt="Preview"/>
+        <div class="preview-overlay">
+          <span class="preview-change">Click to change</span>
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)"/>
+    </div>
+
+    <!-- URL input -->
+    <div class="or-row"><span class="or-text">or paste image URL</span></div>
+    <div class="url-row">
+      <input type="url" id="urlInput" class="url-input" placeholder="https://example.com/photo.jpg"/>
+      <button class="btn-url" onclick="predictFromURL()">→</button>
+    </div>
+
+    <!-- Model selector row -->
+    <div class="model-row">
+      <span class="model-row-label">Lens:</span>
+      <div class="model-tabs" id="modelTabs">
+        <button class="mtab active" data-model="mobilenetv2" onclick="selectModel(this)">
+          MobileNetV2 <span class="mtab-badge">Fast</span>
+        </button>
+        <button class="mtab" data-model="resnet50" onclick="selectModel(this)">
+          ResNet-50 <span class="mtab-badge">Balanced</span>
+        </button>
+        <button class="mtab" data-model="efficientnetb0" onclick="selectModel(this)">
+          EfficientNet-B0 <span class="mtab-badge">Accurate</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Analyze button -->
+    <button class="btn-analyze" id="analyzeBtn" onclick="predict()" disabled>
+      <span class="btn-scan-line"></span>
+      <span class="btn-text">Develop Image</span>
+    </button>
+  </div>
+
+  <!-- ── Result Panel ──────────────────────────────────────────────────── -->
+  <div class="result-card hidden" id="resultCard">
+
+    <!-- Top Prediction -->
+    <div class="result-hero" id="resultHero">
+      <div class="result-label-wrap">
+        <span class="result-rank">Top Read</span>
+        <h2 class="result-label" id="topLabel">—</h2>
+        <div class="result-conf-row">
+          <div class="conf-bar-track"><div class="conf-bar-fill" id="topConfBar"></div></div>
+          <span class="conf-pct" id="topConf">—</span>
+        </div>
+      </div>
+      <div class="result-meta">
+        <div class="meta-chip" id="metaModel">—</div>
+        <div class="meta-chip" id="metaTime">—</div>
+        <div class="meta-chip" id="metaSize">—</div>
+      </div>
+    </div>
+
+    <!-- All Predictions -->
+    <div class="predictions-section">
+      <h3 class="section-title">Top 5 Reads</h3>
+      <div class="predictions-list" id="predictionsList"></div>
+    </div>
+
+    <!-- Image Analysis -->
+    <div class="analysis-grid" id="analysisGrid"></div>
+
+    <!-- Try Another -->
+    <button class="btn-reset" onclick="resetUI()">↺ Develop Another Photo</button>
+  </div>
+
+  <!-- ── Loading ───────────────────────────────────────────────────────── -->
+  <div class="loading-card hidden" id="loadingCard">
+    <div class="scanner">
+      <div class="scanner-img-wrap" id="scannerImgWrap">
+        <img class="scanner-img" id="scannerImg" src="" alt=""/>
+        <div class="scanner-beam"></div>
+        <div class="scanner-grid"></div>
+      </div>
+    </div>
+    <p class="loading-label" id="loadingLabel">Loading the lens…</p>
+    <div class="loading-steps" id="loadingSteps">
+      <span class="lstep active">Load lens</span>
+      <span class="lstep">Expose</span>
+      <span class="lstep">Develop</span>
+      <span class="lstep">Print</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Model Panel (overlay) ─────────────────────────────────────────── -->
+<div class="overlay hidden" id="modelOverlay" onclick="hideModelPanel()"></div>
+<div class="model-panel hidden" id="modelPanel">
+  <div class="mp-header">
+    <h3>Choose Your Lens</h3>
+    <button class="mp-close" onclick="hideModelPanel()">✕</button>
+  </div>
+  <div class="mp-cards">
+    <div class="mp-card" data-model="mobilenetv2" onclick="switchModel('mobilenetv2')">
+      <div class="mp-card-header">
+        <span class="mp-name">MobileNetV2</span>
+        <span class="mp-tag fast">Fast</span>
+      </div>
+      <div class="mp-stat">Accuracy: 71.8% · Size: 14 MB</div>
+      <div class="mp-desc">Optimised for real-time inference on CPU. Best choice for demos and web apps.</div>
+    </div>
+    <div class="mp-card" data-model="resnet50" onclick="switchModel('resnet50')">
+      <div class="mp-card-header">
+        <span class="mp-name">ResNet-50</span>
+        <span class="mp-tag balanced">Balanced</span>
+      </div>
+      <div class="mp-stat">Accuracy: 74.9% · Size: 98 MB</div>
+      <div class="mp-desc">Classic deep residual network. Good balance between speed and accuracy.</div>
+    </div>
+    <div class="mp-card" data-model="efficientnetb0" onclick="switchModel('efficientnetb0')">
+      <div class="mp-card-header">
+        <span class="mp-name">EfficientNet-B0</span>
+        <span class="mp-tag accurate">Accurate</span>
+      </div>
+      <div class="mp-stat">Accuracy: 77.1% · Size: 29 MB</div>
+      <div class="mp-desc">State-of-the-art compound scaling. Highest accuracy in this set.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
