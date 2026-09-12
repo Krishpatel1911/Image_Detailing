@@ -1,17 +1,7 @@
-# ── Core Web Framework ────────────────────────────────────────
-flask
-Werkzeug
-# ── Deep Learning ─────────────────────────────────────────────
-# Python 3.12 users: tensorflow
-# Python 3.11 users: tensorflow
-tensorflow
-
-# ── Image Processing ──────────────────────────────────────────
+Flask==3.1.0
+tensorflow==2.19.0
+opencv-python-headless==4.11.0.86
 Pillow
-opencv-python
-# ── Utilities ─────────────────────────────────────────────────
 numpy
-requests
-
-# ── Dev / Testing ─────────────────────────────────────────────
 pytest
+gunicorn
